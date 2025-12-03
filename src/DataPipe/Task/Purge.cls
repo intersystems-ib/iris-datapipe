@@ -45,7 +45,7 @@ ClassMethod DeleteData(pDaysToKeep As %Integer = 30, pDaysToKeepErrors As %Integ
         set from = "from DataPipe_Data.Inbox "
         set where = "where (CreatedTS < ? and (Ignored = 1 or Status = 'DONE')) " _
                     "or (CreatedTS < ? and Status != 'DONE') "
-        set orderBy = "order by CreatedTS, ID "
+        set orderBy = "order by ID1 "
 
         set sql = select _ from _ where _ orderBy
 
