@@ -6,6 +6,9 @@ Parameter TaskName = "DataPipe.Task.Purge";
 /// Number of days to keep in the database
 Property DaysToKeep As %Integer [ InitialExpression = 30 ];
 
+/// Number of datys to keep errors in the database
+Property DaysToKeepErrors As %Integer [ InitialExpression = 90 ];
+
 /// Task
 Method OnTask() As %Status
 {
@@ -13,7 +16,7 @@ Method OnTask() As %Status
     try {
         do ..Log("=====================================")
 		do ..Log("*DataPipe.Task.Purge Begin")
-        $$$ThrowOnError(..DeleteData(..DaysToKeep))
+        $$$ThrowOnError(..DeleteData(..DaysToKeep, ..DaysToKeepErrors))
         do ..Log("*DataPipe.Task.Purge End")
 
     } catch ex {
@@ -23,22 +26,25 @@ Method OnTask() As %Status
     quit ret
 }
 
-/// Purge DataPipe data. Keeps data generated in the last <i>DaysToKeep</i> days.
+/// Purge DataPipe data. Keeps data generated in the last <i>DaysToKeep</i> days if ignored or done. Keeps data generated in the last <i>DaysToKeeErrors</i> days if not ignored and not done.
 /// Param <b>pDaysToKeep</b>: Number of days to keep in the database
+/// Param <b>pDaysToKeepErrors</b>: Number of days to keep errors in the database
 /// Examples: 
-///   do ##class(DataPipe.Task.Purge).DeleteData(0) ; delete all data
-///   do ##class(DataPipe.Task.Purge).DeleteData(1) ; keep 1 day of data
-ClassMethod DeleteData(pDaysToKeep As %Integer = 30) As %Status
+///   do ##class(DataPipe.Task.Purge).DeleteData(0, 0) ; delete all data
+///   do ##class(DataPipe.Task.Purge).DeleteData(1, 20) ; keep 1 day of data and 20 days of data with errors
+ClassMethod DeleteData(pDaysToKeep As %Integer = 30, pDaysToKeepErrors As %Integer = 90) As %Status
 {
     set ret = $$$OK
     set %tDoNotDeleteDate = $zdate(+$horolog - pDaysToKeep, 3)_" 23:59:59"
+    set %tDoNotDeleteErrorsDate = $zdate(+$horolog - pDaysToKeepErrors, 3)_" 23:59:59"
 
     try {
         set (ntotal, ndeleted) = 0
 
         set select = "select ID "
         set from = "from DataPipe_Data.Inbox "
-        set where = "where CreatedTS < ? and (Ignored = 1 or Status = 'DONE') "
+        set where = "where (CreatedTS < ? and (Ignored = 1 or Status = 'DONE')) " _
+                    "or (CreatedTS < ? and Status != 'DONE') "
         set orderBy = "order by CreatedTS, ID "
 
         set sql = select _ from _ where _ orderBy
@@ -46,7 +52,7 @@ ClassMethod DeleteData(pDaysToKeep As %Integer = 30) As %Status
         set statement = ##class(%SQL.Statement).%New()
         $$$ThrowOnError(statement.%Prepare(sql))
 
-        set result = statement.%Execute(%tDoNotDeleteDate)
+        set result = statement.%Execute(%tDoNotDeleteDate, %tDoNotDeleteErrorsDate)
         while result.%Next() {
             
             set id = result.%Get("ID")
