@@ -6,7 +6,7 @@ Parameter TaskName = "DataPipe.Task.Purge";
 /// Number of days to keep in the database
 Property DaysToKeep As %Integer [ InitialExpression = 30 ];
 
-/// Number of datys to keep errors in the database
+/// Number of datys to keep errors and warnings in the database
 Property DaysToKeepErrors As %Integer [ InitialExpression = 90 ];
 
 /// Task
@@ -28,7 +28,7 @@ Method OnTask() As %Status
 
 /// Purge DataPipe data. Keeps data generated in the last <i>DaysToKeep</i> days if ignored or done. Keeps data generated in the last <i>DaysToKeeErrors</i> days if not ignored and not done.
 /// Param <b>pDaysToKeep</b>: Number of days to keep in the database
-/// Param <b>pDaysToKeepErrors</b>: Number of days to keep errors in the database
+/// Param <b>pDaysToKeepErrors</b>: Number of days to keep errors and warnings in the database
 /// Examples: 
 ///   do ##class(DataPipe.Task.Purge).DeleteData(0, 0) ; delete all data
 ///   do ##class(DataPipe.Task.Purge).DeleteData(1, 20) ; keep 1 day of data and 20 days of data with errors
@@ -43,8 +43,8 @@ ClassMethod DeleteData(pDaysToKeep As %Integer = 30, pDaysToKeepErrors As %Integ
 
         set select = "select ID "
         set from = "from DataPipe_Data.Inbox "
-        set where = "where (CreatedTS < ? and (Ignored = 1 or Status = 'DONE')) " _
-                    "or (CreatedTS < ? and Status != 'DONE') "
+        set where = "where (CreatedTS < ? and (Ignored = 1 or (Status = 'DONE' and StagingStatus = 'VALID'))) " _
+                    "or (CreatedTS < ? and (Status != 'DONE' or StagingStatus != 'VALID')) "
         set orderBy = "order by ID1 "
 
         set sql = select _ from _ where _ orderBy

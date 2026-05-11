@@ -3,7 +3,7 @@
   <Document name="iris-datapipe.ZPM">
     <Module>
       <Name>iris-datapipe</Name>
-      <Version>2.0.5</Version>
+      <Version>2.0.6</Version>
       <Description>DataPipe an interoperability framework to ingest data in InterSystems IRIS in a flexible way.</Description>
       <Keywords>datapipe ingestion staging validation</Keywords>
       <Author>
